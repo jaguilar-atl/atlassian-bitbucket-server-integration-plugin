@@ -107,9 +107,9 @@ public class BitbucketSCMSource extends SCMSource {
         }
         return getFullyInitializedGitSCMSource().build(head, revision);
     }
-    
+
     @Override
-    protected List<Action> retrieveActions(SCMSourceEvent event, 
+    protected List<Action> retrieveActions(SCMSourceEvent event,
                                            TaskListener listener) throws IOException, InterruptedException {
         List<Action> result = new ArrayList<>();
         BitbucketSCMSource.DescriptorImpl descriptor = (BitbucketSCMSource.DescriptorImpl) getDescriptor();
@@ -120,23 +120,23 @@ public class BitbucketSCMSource extends SCMSource {
         }
         BitbucketServerConfiguration serverConfiguration = mayBeServerConf.get();
         BitbucketScmHelper scmHelper =
-                descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(), getCredentials().orElse(null));        
-        
+                descriptor.getBitbucketScmHelper(serverConfiguration.getBaseUrl(), getCredentials().orElse(null));
+
         scmHelper.getDefaultBranch(repository.getProjectName(), repository.getRepositoryName())
                 .ifPresent(defaultBranch -> result.add(new BitbucketRepositoryMetadataAction(repository, defaultBranch)));
         return result;
     }
 
     @Override
-    protected List<Action> retrieveActions(SCMHead head, 
+    protected List<Action> retrieveActions(SCMHead head,
                                            @CheckForNull SCMHeadEvent event,
-                                           TaskListener listener) throws IOException, InterruptedException {       
+                                           TaskListener listener) throws IOException, InterruptedException {
         List<Action> result = new ArrayList<>();
         SCMSourceOwner owner = getOwner();
         if (owner instanceof Actionable) {
             ((Actionable) owner).getActions(BitbucketRepositoryMetadataAction.class).stream()
                 .filter(
-                        action -> action.getBitbucketSCMRepository().equals(repository) && 
+                        action -> action.getBitbucketSCMRepository().equals(repository) &&
                         StringUtils.equals(action.getBitbucketDefaultBranch().getDisplayId(), head.getName()))
                 .findAny()
                 .ifPresent(action -> result.add(new PrimaryInstanceMetadataAction()));
@@ -181,7 +181,7 @@ public class BitbucketSCMSource extends SCMSource {
     CustomGitSCMSource getFullyInitializedGitSCMSource() {
         if (gitSCMSource == null) {
             initializeGitScmSource();
-        } 
+        }
         if (getOwner() != null && gitSCMSource.getOwner() == null) {
             gitSCMSource.setOwner(getOwner());
         }
@@ -289,6 +289,11 @@ public class BitbucketSCMSource extends SCMSource {
         }
     }
 
+    @Override
+    protected SCMRevision retrieve(SCMHead scmHead, TaskListener taskListener) throws IOException, InterruptedException {
+        return getFullyInitializedGitSCMSource().accessibleRetrieve(scmHead, taskListener);
+    }
+
     // Resolves the SCM repository, and the Git SCM. This involves a callout to Bitbucket so it must be done after the
     // SCM owner has been initialized
     @VisibleForTesting
@@ -328,7 +333,7 @@ public class BitbucketSCMSource extends SCMSource {
                     .orElseGet(() -> underlyingRepo.getCloneUrl(getBitbucketSCMRepository().getCloneProtocol())
                             .map(BitbucketNamedLink::getHref)
                             .orElse(""));
-            
+
             selfLink = fetchedRepository.getRepository().getSelfLink();
         } else {
             BitbucketRepository fetchedRepository = scmHelper.getRepository(getProjectName(), getRepositoryName());
