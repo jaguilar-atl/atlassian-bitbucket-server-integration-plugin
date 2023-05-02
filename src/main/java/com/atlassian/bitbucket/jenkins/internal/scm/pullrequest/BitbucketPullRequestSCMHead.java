@@ -9,7 +9,7 @@ import static java.util.Objects.requireNonNull;
 
 public class BitbucketPullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2 {
 
-    private static final String PR_ID_DELIMITER = "/PR#";
+    private static final String PR_ID_PREFIX = "pr#";
 
     private final String branchName;
     private final String latestCommit;
@@ -19,7 +19,7 @@ public class BitbucketPullRequestSCMHead extends SCMHead implements ChangeReques
 
     public BitbucketPullRequestSCMHead(String branchName, String latestCommit, String pullRequestId,
                                        BitbucketPullRequestState pullRequestState, SCMHead target) {
-        super(branchName + PR_ID_DELIMITER + pullRequestId);
+        super(PR_ID_PREFIX + pullRequestId);
         this.branchName = requireNonNull(branchName, "branchName");
         this.latestCommit = requireNonNull(latestCommit, "latestCommit");
         this.pullRequestId = requireNonNull(pullRequestId, "pullRequestId");

@@ -1,5 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
+import com.atlassian.bitbucket.jenkins.internal.scm.pullrequest.BitbucketPullRequestSCMHead;
 import com.atlassian.bitbucket.jenkins.internal.scm.pullrequest.BitbucketPullRequestSCMRevision;
 import hudson.model.TaskListener;
 import jenkins.plugins.git.GitSCMBuilder;
@@ -38,13 +39,17 @@ class CustomGitSCMSource extends GitSCMSource {
         return super.retrieve(head, listener);
     }
 
-    public BitbucketSCMRepository getRepository() {
-        return repository;
-    }
-
     @Override
-    protected GitSCMBuilder<?> newBuilder(SCMHead head, SCMRevision revision) {
-        GitSCMBuilder<?> builder = super.newBuilder(head, revision);
+    protected void decorate(GitSCMBuilder<?> builder) {
+        super.decorate(builder);
+
+        SCMHead head = builder.head();
+        SCMRevision revision = builder.revision();
+
+        if (head instanceof BitbucketPullRequestSCMHead) {
+            BitbucketPullRequestSCMHead prHead = (BitbucketPullRequestSCMHead) head;
+            builder.withRefSpec("+refs/pull-requests/" + prHead.getId() + "/from:refs/remotes/@{remote}/" + prHead.getName());
+        }
 
         if (revision instanceof BitbucketPullRequestSCMRevision) {
             BitbucketPullRequestSCMRevision prRevision = (BitbucketPullRequestSCMRevision) revision;
@@ -52,7 +57,9 @@ class CustomGitSCMSource extends GitSCMSource {
             SCMHead targetHead = targetRevision.getHead();
             builder.withExtension(new MergeWithGitSCMExtension(targetHead.getName(), targetRevision.getLatestCommit()));
         }
+    }
 
-        return builder;
+    public BitbucketSCMRepository getRepository() {
+        return repository;
     }
 }

@@ -22,4 +22,10 @@ public class BitbucketPullRequestSCMRevisionFactory {
                         targetHead);
         return new BitbucketPullRequestSCMRevision(sourceHead, targetRevision);
     }
+
+    public static BitbucketPullRequestSCMRevision create(BitbucketPullRequestSCMHead sourceHead) {
+        BitbucketSCMHead targetHead = (BitbucketSCMHead) sourceHead.getTarget();
+        SCMRevision targetRevision = new BitbucketSCMRevision(targetHead);
+        return new BitbucketPullRequestSCMRevision(sourceHead, targetRevision);
+    }
 }

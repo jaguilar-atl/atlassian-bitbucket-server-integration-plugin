@@ -9,6 +9,8 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCr
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
+import com.atlassian.bitbucket.jenkins.internal.scm.pullrequest.BitbucketPullRequestSCMHead;
+import com.atlassian.bitbucket.jenkins.internal.scm.pullrequest.BitbucketPullRequestSCMRevisionFactory;
 import com.atlassian.bitbucket.jenkins.internal.scm.pullrequest.PullRequestAwareSCMHeadObserver;
 import com.atlassian.bitbucket.jenkins.internal.status.BitbucketRepositoryMetadataAction;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookMultibranchTrigger;
@@ -317,6 +319,10 @@ public class BitbucketSCMSource extends SCMSource {
 
     @Override
     protected SCMRevision retrieve(SCMHead scmHead, TaskListener taskListener) throws IOException, InterruptedException {
+        if (scmHead instanceof BitbucketPullRequestSCMHead) {
+            return BitbucketPullRequestSCMRevisionFactory.create((BitbucketPullRequestSCMHead) scmHead);
+        }
+
         return getFullyInitializedGitSCMSource().accessibleRetrieve(scmHead, taskListener);
     }
 
