@@ -12,6 +12,11 @@ import java.util.Collection;
 
 import static java.util.Objects.requireNonNull;
 
+/**
+ * Custom {@link SCMHeadObserver} that converts {@link SCMRevision revisions} into
+ * {@link BitbucketPullRequestSCMRevision pull request revisions} so that the {@link SCMHead} is able to recognize
+ * them as such and create the "merge commit" to be used for the build
+ */
 public class PullRequestAwareSCMHeadObserver extends SCMHeadObserver {
 
     private final SCMHeadObserver delegate;
@@ -33,7 +38,7 @@ public class PullRequestAwareSCMHeadObserver extends SCMHeadObserver {
 
         // Otherwise, we check if there are open pull requests for the specified head and convert the head and revision
         // into BitbucketChangeRequestSCMHead and BitbucketChangeRequestSCMRevision respectively and pass those to the
-        // delegate observer
+        // delegate observer so they can be build appropriately
         Collection<BitbucketPullRequest> pullRequests = pullRequestRetriever.getPullRequests(head);
         if (!pullRequests.isEmpty()) {
             for (BitbucketPullRequest pullRequest : pullRequestRetriever.getPullRequests(head)) {
@@ -46,5 +51,4 @@ public class PullRequestAwareSCMHeadObserver extends SCMHeadObserver {
         // If there are no pull requests, pass it to the delegate observer
         delegate.observe(head, revision);
     }
-
 }
