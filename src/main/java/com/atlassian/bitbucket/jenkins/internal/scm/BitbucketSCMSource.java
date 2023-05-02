@@ -9,9 +9,7 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCr
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
-import com.atlassian.bitbucket.jenkins.internal.scm.pullrequest.BitbucketPullRequestSCMHead;
-import com.atlassian.bitbucket.jenkins.internal.scm.pullrequest.BitbucketPullRequestSCMRevisionFactory;
-import com.atlassian.bitbucket.jenkins.internal.scm.pullrequest.PullRequestAwareSCMHeadObserver;
+import com.atlassian.bitbucket.jenkins.internal.scm.pullrequest.*;
 import com.atlassian.bitbucket.jenkins.internal.status.BitbucketRepositoryMetadataAction;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookMultibranchTrigger;
 import com.atlassian.bitbucket.jenkins.internal.trigger.RetryingWebhookHandler;
@@ -256,10 +254,6 @@ public class BitbucketSCMSource extends SCMSource {
         return false;
     }
 
-    public boolean isEventFromPullRequest(@CheckForNull SCMHeadEvent<?> event) {
-        return event != null && event.getPayload() instanceof PullRequestWebhookEvent;
-    }
-
     public boolean isValid() {
         return getBitbucketSCMRepository().isValid() && isNotBlank(getRemote());
     }
@@ -289,15 +283,16 @@ public class BitbucketSCMSource extends SCMSource {
                             @CheckForNull SCMHeadEvent<?> event,
                             TaskListener listener) throws IOException, InterruptedException {
         if (event == null || isEventApplicable(event)) {
-            if (!isValid()) {
+            DescriptorImpl descriptor = (DescriptorImpl) getDescriptor();
+            Optional<BitbucketServerConfiguration> maybeServerConfig = descriptor.getConfiguration(getServerId());
+            if (!isValid() || !maybeServerConfig.isPresent()) {
                 listener.error("The BitbucketSCMSource has been incorrectly configured, and cannot perform a retrieve." +
                                " Check the configuration before running this job again.");
                 return;
             }
 
-            DescriptorImpl descriptor = (DescriptorImpl) getDescriptor();
-            Optional<BitbucketServerConfiguration> maybeServerConfig = descriptor.getConfiguration(getServerId());
-            if (isEventFromPullRequest(event) || !maybeServerConfig.isPresent()) {
+            if (event != null && event.getPayload() instanceof PullRequestWebhookEvent) {
+                listener.getLogger().println("Event %s is already a pull request event. Skipping pull request retrieval.");
                 getFullyInitializedGitSCMSource().accessibleRetrieve(criteria, observer, event, listener);
                 return;
             }
@@ -306,17 +301,29 @@ public class BitbucketSCMSource extends SCMSource {
             BitbucketScmHelper scmHelper = descriptor.getBitbucketScmHelper(serverConfig.getBaseUrl(),
                     getCredentials().orElse(null));
 
+            // Get the pull requests and group them by branch
             Map<String, List<BitbucketPullRequest>> pullRequestsByBranch =
                     scmHelper.getOpenPullRequests(getProjectKey(), getRepositorySlug())
                             .collect(Collectors.groupingBy(pr -> pr.getFromRef().getDisplayId()));
 
-            SCMHeadObserver prAwareObserver = new PullRequestAwareSCMHeadObserver(observer,
-                    head -> pullRequestsByBranch.getOrDefault(head.getName(), Collections.emptyList()));
+            PullRequestRetriever requestRetriever = head ->
+                    pullRequestsByBranch.getOrDefault(head.getName(), Collections.emptyList());
 
-            getFullyInitializedGitSCMSource().accessibleRetrieve(criteria, prAwareObserver, event, listener);
+            // Make the criteria and observer PR aware
+            SCMSourceCriteria prAwareCriteria = new PullRequestAwareSCMSourceCriteria(criteria, requestRetriever);
+            SCMHeadObserver prAwareObserver = new PullRequestAwareSCMHeadObserver(observer, requestRetriever);
+
+            getFullyInitializedGitSCMSource().accessibleRetrieve(prAwareCriteria, prAwareObserver, event, listener);
         }
     }
 
+    /**
+     * We need to override this, otherwise, it eventually calls the more expensive
+     * {@link #retrieve(SCMSourceCriteria, SCMHeadObserver, SCMHeadEvent, TaskListener)} which is not necessary.
+     * <p>
+     * This is used by the worker just before the build to get the revision from the specified head and does not need
+     * the criteria and filtering as this has already happened during this stage.
+     */
     @Override
     protected SCMRevision retrieve(SCMHead scmHead, TaskListener taskListener) throws IOException, InterruptedException {
         if (scmHead instanceof BitbucketPullRequestSCMHead) {
