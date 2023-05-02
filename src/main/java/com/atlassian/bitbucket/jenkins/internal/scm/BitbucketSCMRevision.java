@@ -32,4 +32,9 @@ public class BitbucketSCMRevision extends SCMRevision {
     public int hashCode() {
         return getHead().hashCode();
     }
+
+    @Override
+    public String toString() {
+        return latestCommit;
+    }
 }

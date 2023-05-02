@@ -30,4 +30,9 @@ public class BitbucketPullRequestSCMRevision extends ChangeRequestSCMRevision<Bi
     protected int _hashCode() {
         return Objects.hash(getHead(), latestCommit);
     }
+
+    @Override
+    public String toString() {
+        return "merge: " + latestCommit + " + " + getTarget();
+    }
 }
