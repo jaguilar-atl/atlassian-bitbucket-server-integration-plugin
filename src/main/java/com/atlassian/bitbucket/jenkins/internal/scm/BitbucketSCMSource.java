@@ -9,7 +9,7 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCr
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
-import com.atlassian.bitbucket.jenkins.internal.scm.PullRequestAwareSCMHeadObserver.PullRequestRetriever;
+import com.atlassian.bitbucket.jenkins.internal.scm.pullrequest.PullRequestAwareSCMHeadObserver;
 import com.atlassian.bitbucket.jenkins.internal.status.BitbucketRepositoryMetadataAction;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookMultibranchTrigger;
 import com.atlassian.bitbucket.jenkins.internal.trigger.RetryingWebhookHandler;
@@ -37,7 +37,7 @@ import jenkins.scm.api.*;
 import jenkins.scm.api.metadata.PrimaryInstanceMetadataAction;
 import jenkins.scm.api.trait.SCMSourceTrait;
 import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
-import jenkins.scm.impl.TagSCMHeadCategory;
+import jenkins.scm.impl.ChangeRequestSCMHeadCategory;
 import jenkins.scm.impl.UncategorizedSCMHeadCategory;
 import jenkins.scm.impl.form.NamedArrayList;
 
@@ -254,6 +254,10 @@ public class BitbucketSCMSource extends SCMSource {
         return false;
     }
 
+    public boolean isEventFromPullRequest(@CheckForNull SCMHeadEvent<?> event) {
+        return event != null && event.getPayload() instanceof PullRequestWebhookEvent;
+    }
+
     public boolean isValid() {
         return getBitbucketSCMRepository().isValid() && isNotBlank(getRemote());
     }
@@ -291,13 +295,11 @@ public class BitbucketSCMSource extends SCMSource {
 
             DescriptorImpl descriptor = (DescriptorImpl) getDescriptor();
             Optional<BitbucketServerConfiguration> maybeServerConfig = descriptor.getConfiguration(getServerId());
-            if (event.getPayload() instanceof PullRequestWebhookEvent || !maybeServerConfig.isPresent()) {
-                // If the event is already a pull request event, we simply delegate to GitSCMSource#retrieve
+            if (isEventFromPullRequest(event) || !maybeServerConfig.isPresent()) {
                 getFullyInitializedGitSCMSource().accessibleRetrieve(criteria, observer, event, listener);
                 return;
             }
 
-            // Otherwise, we retrieve pull requests and group them by the source branch
             BitbucketServerConfiguration serverConfig = maybeServerConfig.get();
             BitbucketScmHelper scmHelper = descriptor.getBitbucketScmHelper(serverConfig.getBaseUrl(),
                     getCredentials().orElse(null));
@@ -552,7 +554,10 @@ public class BitbucketSCMSource extends SCMSource {
 
         @Override
         protected SCMHeadCategory[] createCategories() {
-            return new SCMHeadCategory[]{UncategorizedSCMHeadCategory.DEFAULT, TagSCMHeadCategory.DEFAULT};
+            return new SCMHeadCategory[]{
+                    UncategorizedSCMHeadCategory.DEFAULT,
+                    ChangeRequestSCMHeadCategory.DEFAULT
+            };
         }
 
         BitbucketScmHelper getBitbucketScmHelper(String bitbucketUrl, @CheckForNull Credentials httpCredentials) {

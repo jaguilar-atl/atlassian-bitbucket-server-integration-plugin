@@ -1,4 +1,4 @@
-package com.atlassian.bitbucket.jenkins.internal.scm;
+package com.atlassian.bitbucket.jenkins.internal.scm.pullrequest;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import jenkins.scm.api.SCMRevision;
@@ -6,10 +6,10 @@ import jenkins.scm.api.mixin.ChangeRequestSCMRevision;
 
 import java.util.Objects;
 
-public class BitbucketChangeRequestSCMRevision extends ChangeRequestSCMRevision<BitbucketChangeRequestSCMHead> {
+public class BitbucketPullRequestSCMRevision extends ChangeRequestSCMRevision<BitbucketPullRequestSCMHead> {
 
-    public BitbucketChangeRequestSCMRevision(@NonNull BitbucketChangeRequestSCMHead head,
-                                             @NonNull SCMRevision target) {
+    public BitbucketPullRequestSCMRevision(@NonNull BitbucketPullRequestSCMHead head,
+                                           @NonNull SCMRevision target) {
         super(head, target);
     }
 

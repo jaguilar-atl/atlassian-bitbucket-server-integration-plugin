@@ -1,6 +1,7 @@
-package com.atlassian.bitbucket.jenkins.internal.scm;
+package com.atlassian.bitbucket.jenkins.internal.scm.pullrequest;
 
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRevision;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadObserver;
@@ -17,8 +18,6 @@ public class PullRequestAwareSCMHeadObserver extends SCMHeadObserver {
     private final SCMHeadObserver delegate;
     private final PullRequestRetriever pullRequestRetriever;
 
-    private boolean requiresPullRequests;
-
     public PullRequestAwareSCMHeadObserver(SCMHeadObserver delegate,
                                            PullRequestRetriever pullRequestRetriever) {
         this.delegate = requireNonNull(delegate, "delegate");
@@ -27,38 +26,31 @@ public class PullRequestAwareSCMHeadObserver extends SCMHeadObserver {
 
     @Override
     public void observe(@NonNull SCMHead head, @NonNull SCMRevision revision) throws IOException, InterruptedException {
-        if (requiresPullRequests) {
-            if (head instanceof ChangeRequestSCMHead) {
-                // If the head is already a ChangeRequestSCMHead then we simply observe it
-                delegate.observe(head, revision);
-                return;
-            }
-
-            // Otherwise, we check if there are open pull requests for the specified head and convert the head and
-            // revision into BitbucketChangeRequestSCMHead and BitbucketChangeRequestSCMRevision respectively
-            for (BitbucketPullRequest pullRequest : pullRequestRetriever.getPullRequests(head)) {
-                SCMHead targetHead = new SCMHead(pullRequest.getToRef().getDisplayId());
-                SCMRevision targetRevision = new BitbucketSCMRevision(targetHead);
-                BitbucketChangeRequestSCMHead sourceHead =
-                        new BitbucketChangeRequestSCMHead(pullRequest.getFromRef().getDisplayId(),
-                                String.valueOf(pullRequest.getId()),
-                                targetHead);
-                SCMRevision sourceRevision = new BitbucketChangeRequestSCMRevision(sourceHead, targetRevision);
-                delegate.observe(sourceHead, sourceRevision);
-            }
-
+        if (head instanceof ChangeRequestSCMHead) {
+            // If the head is already a ChangeRequestSCMHead then we simply pass it to the delegate observer
+            delegate.observe(head, revision);
             return;
         }
 
+        // Otherwise, we check if there are open pull requests for the specified head and convert the head and
+        // revision into BitbucketChangeRequestSCMHead and BitbucketChangeRequestSCMRevision respectively
+        Collection<BitbucketPullRequest> pullRequests = pullRequestRetriever.getPullRequests(head);
+        if (!pullRequests.isEmpty()) {
+            for (BitbucketPullRequest pullRequest : pullRequestRetriever.getPullRequests(head)) {
+                SCMHead targetHead = new SCMHead(pullRequest.getToRef().getDisplayId());
+                SCMRevision targetRevision = new BitbucketSCMRevision(targetHead);
+                BitbucketPullRequestSCMHead sourceHead =
+                        new BitbucketPullRequestSCMHead(pullRequest.getFromRef().getDisplayId(),
+                                String.valueOf(pullRequest.getId()),
+                                targetHead);
+                SCMRevision sourceRevision = new BitbucketPullRequestSCMRevision(sourceHead, targetRevision);
+                delegate.observe(sourceHead, sourceRevision);
+            }
+            return;
+        }
+
+        // If there are no pull requests, pass it to the delegate observer
         delegate.observe(head, revision);
     }
 
-    public void requiresPullRequests(boolean requiresPullRequests) {
-        this.requiresPullRequests = requiresPullRequests;
-    }
-
-    public interface PullRequestRetriever {
-
-        Collection<BitbucketPullRequest> getPullRequests(SCMHead head);
-    }
 }

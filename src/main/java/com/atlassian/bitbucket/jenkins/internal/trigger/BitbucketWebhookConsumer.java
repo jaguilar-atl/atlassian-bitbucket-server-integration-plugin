@@ -2,7 +2,12 @@ package com.atlassian.bitbucket.jenkins.internal.trigger;
 
 import com.atlassian.bitbucket.jenkins.internal.config.BitbucketPluginConfiguration;
 import com.atlassian.bitbucket.jenkins.internal.model.*;
-import com.atlassian.bitbucket.jenkins.internal.scm.*;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRevision;
+import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource;
+import com.atlassian.bitbucket.jenkins.internal.scm.pullrequest.BitbucketPullRequestSCMHead;
+import com.atlassian.bitbucket.jenkins.internal.scm.pullrequest.BitbucketPullRequestSCMRevision;
 import com.atlassian.bitbucket.jenkins.internal.trigger.events.*;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.plugins.git.GitSCM;
@@ -253,11 +258,11 @@ public class BitbucketWebhookConsumer {
 
             SCMHead targetHead = new SCMHead(toRef.getDisplayId());
             SCMRevision targetRevision = new BitbucketSCMRevision(targetHead);
-            BitbucketChangeRequestSCMHead sourceHead =
-                    new BitbucketChangeRequestSCMHead(fromRef.getDisplayId(),
+            BitbucketPullRequestSCMHead sourceHead =
+                    new BitbucketPullRequestSCMHead(fromRef.getDisplayId(),
                             String.valueOf(pullRequest.getId()),
                             targetHead);
-            SCMRevision sourceRevision = new BitbucketChangeRequestSCMRevision(sourceHead, targetRevision);
+            SCMRevision sourceRevision = new BitbucketPullRequestSCMRevision(sourceHead, targetRevision);
             return Collections.singletonMap(sourceHead, sourceRevision);
         }
 
