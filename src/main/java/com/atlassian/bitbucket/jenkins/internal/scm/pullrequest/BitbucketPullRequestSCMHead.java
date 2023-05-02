@@ -12,15 +12,16 @@ public class BitbucketPullRequestSCMHead extends SCMHead implements ChangeReques
     private static final String PR_ID_DELIMITER = "/PR#";
 
     private final String branchName;
+    private final String latestCommit;
     private final String pullRequestId;
     private final BitbucketPullRequestState pullRequestState;
     private final SCMHead target;
 
-    public BitbucketPullRequestSCMHead(String branchName, String pullRequestId,
-                                       BitbucketPullRequestState pullRequestState,
-                                       SCMHead target) {
+    public BitbucketPullRequestSCMHead(String branchName, String latestCommit, String pullRequestId,
+                                       BitbucketPullRequestState pullRequestState, SCMHead target) {
         super(branchName + PR_ID_DELIMITER + pullRequestId);
         this.branchName = requireNonNull(branchName, "branchName");
+        this.latestCommit = requireNonNull(latestCommit, "latestCommit");
         this.pullRequestId = requireNonNull(pullRequestId, "pullRequestId");
         this.pullRequestState = requireNonNull(pullRequestState, "pullRequestState");
         this.target = requireNonNull(target, "target");
@@ -34,6 +35,10 @@ public class BitbucketPullRequestSCMHead extends SCMHead implements ChangeReques
     @Override
     public String getId() {
         return pullRequestId;
+    }
+
+    public String getLatestCommit() {
+        return latestCommit;
     }
 
     @Override

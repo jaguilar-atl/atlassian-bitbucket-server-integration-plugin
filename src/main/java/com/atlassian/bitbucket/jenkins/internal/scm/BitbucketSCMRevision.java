@@ -1,22 +1,24 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 
-import java.util.Objects;
+import static java.util.Objects.requireNonNull;
 
 public class BitbucketSCMRevision extends SCMRevision {
 
-    public BitbucketSCMRevision(@NonNull SCMHead head) {
+    private final String latestCommit;
+
+    public BitbucketSCMRevision(@NonNull BitbucketSCMHead head) {
         super(head);
+        this.latestCommit = requireNonNull(head, "head").getLatestCommit();
     }
 
     @Override
     public boolean equals(Object obj) {
-        if (obj instanceof SCMRevision) {
-            SCMRevision that = (SCMRevision) obj;
-            return Objects.equals(getHead(), that.getHead());
+        if (obj instanceof BitbucketSCMRevision) {
+            BitbucketSCMRevision that = (BitbucketSCMRevision) obj;
+            return getHead().equals(that.getHead()) && latestCommit.equals(that.latestCommit);
         }
 
         return false;

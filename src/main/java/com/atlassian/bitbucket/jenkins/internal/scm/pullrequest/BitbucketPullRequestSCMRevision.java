@@ -1,25 +1,33 @@
 package com.atlassian.bitbucket.jenkins.internal.scm.pullrequest;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.mixin.ChangeRequestSCMRevision;
 
 import java.util.Objects;
 
+import static java.util.Objects.requireNonNull;
+
 public class BitbucketPullRequestSCMRevision extends ChangeRequestSCMRevision<BitbucketPullRequestSCMHead> {
 
-    public BitbucketPullRequestSCMRevision(@NonNull BitbucketPullRequestSCMHead head,
-                                           @NonNull SCMRevision target) {
+    private final String latestCommit;
+
+    public BitbucketPullRequestSCMRevision(BitbucketPullRequestSCMHead head, SCMRevision target) {
         super(head, target);
+        this.latestCommit = requireNonNull(head, "head").getLatestCommit();
     }
 
     @Override
     public boolean equivalent(ChangeRequestSCMRevision<?> revision) {
-        return Objects.equals(getHead(), revision.getHead());
+        if (revision instanceof BitbucketPullRequestSCMRevision) {
+            BitbucketPullRequestSCMRevision that = (BitbucketPullRequestSCMRevision) revision;
+            return getHead().equals(that.getHead()) && latestCommit.equals(that.latestCommit);
+        }
+
+        return false;
     }
 
     @Override
     protected int _hashCode() {
-        return getHead().hashCode();
+        return Objects.hash(getHead(), latestCommit);
     }
 }
