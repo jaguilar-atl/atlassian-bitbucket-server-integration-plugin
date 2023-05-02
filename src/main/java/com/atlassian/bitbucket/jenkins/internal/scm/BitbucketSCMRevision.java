@@ -24,6 +24,10 @@ public class BitbucketSCMRevision extends SCMRevision {
         return false;
     }
 
+    public String getLatestCommit() {
+        return latestCommit;
+    }
+
     @Override
     public int hashCode() {
         return getHead().hashCode();

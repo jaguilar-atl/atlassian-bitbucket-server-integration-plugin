@@ -1,7 +1,10 @@
 package com.atlassian.bitbucket.jenkins.internal.scm;
 
+import com.atlassian.bitbucket.jenkins.internal.scm.pullrequest.BitbucketPullRequestSCMRevision;
 import hudson.model.TaskListener;
+import jenkins.plugins.git.GitSCMBuilder;
 import jenkins.plugins.git.GitSCMSource;
+import jenkins.plugins.git.MergeWithGitSCMExtension;
 import jenkins.scm.api.*;
 
 import javax.annotation.CheckForNull;
@@ -37,5 +40,19 @@ class CustomGitSCMSource extends GitSCMSource {
 
     public BitbucketSCMRepository getRepository() {
         return repository;
+    }
+
+    @Override
+    protected GitSCMBuilder<?> newBuilder(SCMHead head, SCMRevision revision) {
+        GitSCMBuilder<?> builder = super.newBuilder(head, revision);
+
+        if (revision instanceof BitbucketPullRequestSCMRevision) {
+            BitbucketPullRequestSCMRevision prRevision = (BitbucketPullRequestSCMRevision) revision;
+            BitbucketSCMRevision targetRevision = (BitbucketSCMRevision) prRevision.getTarget();
+            SCMHead targetHead = targetRevision.getHead();
+            builder.withExtension(new MergeWithGitSCMExtension(targetHead.getName(), targetRevision.getLatestCommit()));
+        }
+
+        return builder;
     }
 }
