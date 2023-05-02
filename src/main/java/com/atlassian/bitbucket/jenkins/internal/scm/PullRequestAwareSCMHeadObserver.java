@@ -28,18 +28,26 @@ public class PullRequestAwareSCMHeadObserver extends SCMHeadObserver {
     @Override
     public void observe(@NonNull SCMHead head, @NonNull SCMRevision revision) throws IOException, InterruptedException {
         if (requiresPullRequests) {
-            if (!(head instanceof ChangeRequestSCMHead)) {
-                for (BitbucketPullRequest pullRequest : pullRequestRetriever.getPullRequests(head)) {
-                    SCMHead targetHead = new SCMHead(pullRequest.getToRef().getDisplayId());
-                    SCMRevision targetRevision = new BitbucketSCMRevision(targetHead);
-                    BitbucketChangeRequestSCMHead sourceHead =
-                            new BitbucketChangeRequestSCMHead(pullRequest.getFromRef().getDisplayId(),
-                                    String.valueOf(pullRequest.getId()),
-                                    targetHead);
-                    SCMRevision sourceRevision = new BitbucketChangeRequestSCMRevision(sourceHead, targetRevision);
-                    delegate.observe(sourceHead, sourceRevision);
-                }
+            if (head instanceof ChangeRequestSCMHead) {
+                // If the head is already a ChangeRequestSCMHead then we simply observe it
+                delegate.observe(head, revision);
+                return;
             }
+
+            // Otherwise, we check if there are open pull requests for the specified head and convert the head and
+            // revision into BitbucketChangeRequestSCMHead and BitbucketChangeRequestSCMRevision respectively
+            for (BitbucketPullRequest pullRequest : pullRequestRetriever.getPullRequests(head)) {
+                SCMHead targetHead = new SCMHead(pullRequest.getToRef().getDisplayId());
+                SCMRevision targetRevision = new BitbucketSCMRevision(targetHead);
+                BitbucketChangeRequestSCMHead sourceHead =
+                        new BitbucketChangeRequestSCMHead(pullRequest.getFromRef().getDisplayId(),
+                                String.valueOf(pullRequest.getId()),
+                                targetHead);
+                SCMRevision sourceRevision = new BitbucketChangeRequestSCMRevision(sourceHead, targetRevision);
+                delegate.observe(sourceHead, sourceRevision);
+            }
+
+            return;
         }
 
         delegate.observe(head, revision);
