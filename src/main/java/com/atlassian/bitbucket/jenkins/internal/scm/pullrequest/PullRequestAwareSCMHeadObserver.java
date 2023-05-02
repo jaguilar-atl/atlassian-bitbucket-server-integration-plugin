@@ -1,7 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.scm.pullrequest;
 
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
-import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRevision;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadObserver;
@@ -32,19 +31,14 @@ public class PullRequestAwareSCMHeadObserver extends SCMHeadObserver {
             return;
         }
 
-        // Otherwise, we check if there are open pull requests for the specified head and convert the head and
-        // revision into BitbucketChangeRequestSCMHead and BitbucketChangeRequestSCMRevision respectively
+        // Otherwise, we check if there are open pull requests for the specified head and convert the head and revision
+        // into BitbucketChangeRequestSCMHead and BitbucketChangeRequestSCMRevision respectively and pass those to the
+        // delegate observer
         Collection<BitbucketPullRequest> pullRequests = pullRequestRetriever.getPullRequests(head);
         if (!pullRequests.isEmpty()) {
             for (BitbucketPullRequest pullRequest : pullRequestRetriever.getPullRequests(head)) {
-                SCMHead targetHead = new SCMHead(pullRequest.getToRef().getDisplayId());
-                SCMRevision targetRevision = new BitbucketSCMRevision(targetHead);
-                BitbucketPullRequestSCMHead sourceHead =
-                        new BitbucketPullRequestSCMHead(pullRequest.getFromRef().getDisplayId(),
-                                String.valueOf(pullRequest.getId()),
-                                targetHead);
-                SCMRevision sourceRevision = new BitbucketPullRequestSCMRevision(sourceHead, targetRevision);
-                delegate.observe(sourceHead, sourceRevision);
+                SCMRevision prRevision = BitbucketPullRequestSCMRevisionFactory.create(pullRequest);
+                delegate.observe(prRevision.getHead(), prRevision);
             }
             return;
         }

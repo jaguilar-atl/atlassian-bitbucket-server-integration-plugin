@@ -1,5 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.scm.pullrequest;
 
+import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequestState;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import jenkins.scm.api.SCMHead;
@@ -8,10 +9,15 @@ import jenkins.scm.api.trait.SCMHeadPrefilter;
 import jenkins.scm.api.trait.SCMSourceContext;
 import jenkins.scm.api.trait.SCMSourceTrait;
 import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.util.Optional;
 
 public class RequireOpenPullRequestTrait extends SCMSourceTrait {
+
+    @DataBoundConstructor
+    public RequireOpenPullRequestTrait() {
+    }
 
     @Override
     protected void decorateContext(SCMSourceContext<?, ?> context) {
@@ -23,6 +29,10 @@ public class RequireOpenPullRequestTrait extends SCMSourceTrait {
         context.withPrefilter(new SCMHeadPrefilter() {
             @Override
             public boolean isExcluded(@NonNull SCMSource source, @NonNull SCMHead head) {
+                if (head instanceof BitbucketPullRequestSCMHead) {
+                    return ((BitbucketPullRequestSCMHead) head).getPullRequestState() == BitbucketPullRequestState.OPEN;
+                }
+
                 return criteria.map(criteria -> !criteria.hasOpenPullRequests(head)).orElse(false);
             }
         });
