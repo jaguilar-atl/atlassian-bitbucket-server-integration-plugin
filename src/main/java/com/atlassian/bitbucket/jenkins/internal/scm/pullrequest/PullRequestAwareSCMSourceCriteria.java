@@ -12,15 +12,17 @@ import static java.util.Objects.requireNonNull;
 public class PullRequestAwareSCMSourceCriteria implements SCMSourceCriteria {
 
     private final SCMSourceCriteria delegate;
-    private final PullRequestRetriever pullRequestRetriever;
+    private final PullRequestRevisionRetriever revisionRetriever;
 
-    public PullRequestAwareSCMSourceCriteria(SCMSourceCriteria delegate, PullRequestRetriever pullRequestRetriever) {
+    public PullRequestAwareSCMSourceCriteria(SCMSourceCriteria delegate, PullRequestRevisionRetriever revisionRetriever) {
         this.delegate = requireNonNull(delegate, "delegate");
-        this.pullRequestRetriever = requireNonNull(pullRequestRetriever, "pullRequestRetriever");
+        this.revisionRetriever = requireNonNull(revisionRetriever, "revisionRetriever");
     }
 
     public boolean hasOpenPullRequests(SCMHead head) {
-        return !pullRequestRetriever.getPullRequests(head).isEmpty();
+        return revisionRetriever.getPullRequestRevisions(head).stream()
+                .filter(BitbucketPullRequestSCMRevision::isPullRequestOpen)
+                .count() > 0;
     }
 
     @Override

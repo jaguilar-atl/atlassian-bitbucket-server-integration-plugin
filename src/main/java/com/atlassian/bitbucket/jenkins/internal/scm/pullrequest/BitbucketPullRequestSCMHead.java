@@ -46,12 +46,12 @@ public class BitbucketPullRequestSCMHead extends SCMHead implements ChangeReques
         return branchName;
     }
 
-    public BitbucketPullRequestState getPullRequestState() {
-        return pullRequestState;
-    }
-
     @Override
     public SCMHead getTarget() {
         return target;
+    }
+
+    public boolean isPullRequestOpen() {
+        return pullRequestState == BitbucketPullRequestState.OPEN;
     }
 }

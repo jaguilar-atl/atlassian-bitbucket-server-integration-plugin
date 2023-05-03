@@ -5,7 +5,7 @@ import com.atlassian.bitbucket.jenkins.internal.model.*;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource;
-import com.atlassian.bitbucket.jenkins.internal.scm.pullrequest.BitbucketPullRequestSCMRevisionFactory;
+import com.atlassian.bitbucket.jenkins.internal.scm.pullrequest.BitbucketPullRequestSCMRevision;
 import com.atlassian.bitbucket.jenkins.internal.trigger.events.*;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.plugins.git.GitSCM;
@@ -250,7 +250,7 @@ public class BitbucketWebhookConsumer {
                 return emptyMap();
             }
 
-            SCMRevision revision = BitbucketPullRequestSCMRevisionFactory.create(getPayload().getPullRequest());
+            SCMRevision revision = BitbucketPullRequestSCMRevision.fromPullRequest(getPayload().getPullRequest());
             return Collections.singletonMap(revision.getHead(), revision);
         }
 

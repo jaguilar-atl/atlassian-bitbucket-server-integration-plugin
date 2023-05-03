@@ -40,7 +40,6 @@ import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
 import jenkins.scm.impl.ChangeRequestSCMHeadCategory;
 import jenkins.scm.impl.UncategorizedSCMHeadCategory;
 import jenkins.scm.impl.form.NamedArrayList;
-
 import org.apache.commons.lang3.StringUtils;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.AncestorInPath;
@@ -301,13 +300,15 @@ public class BitbucketSCMSource extends SCMSource {
             BitbucketScmHelper scmHelper = descriptor.getBitbucketScmHelper(serverConfig.getBaseUrl(),
                     getCredentials().orElse(null));
 
-            // Get the pull requests and group them by branch
+            // Get open pull requests and group them by branch
             Map<String, List<BitbucketPullRequest>> pullRequestsByBranch =
                     scmHelper.getOpenPullRequests(getProjectKey(), getRepositorySlug())
                             .collect(Collectors.groupingBy(pr -> pr.getFromRef().getDisplayId()));
 
-            PullRequestRetriever requestRetriever = head ->
-                    pullRequestsByBranch.getOrDefault(head.getName(), Collections.emptyList());
+            PullRequestRevisionRetriever requestRetriever = head ->
+                    pullRequestsByBranch.getOrDefault(head.getName(), Collections.emptyList()).stream()
+                            .map(BitbucketPullRequestSCMRevision::fromPullRequest)
+                            .collect(Collectors.toList());
 
             // Make the criteria and observer PR aware
             SCMSourceCriteria prAwareCriteria = new PullRequestAwareSCMSourceCriteria(criteria, requestRetriever);
@@ -327,7 +328,7 @@ public class BitbucketSCMSource extends SCMSource {
     @Override
     protected SCMRevision retrieve(SCMHead scmHead, TaskListener taskListener) throws IOException, InterruptedException {
         if (scmHead instanceof BitbucketPullRequestSCMHead) {
-            return BitbucketPullRequestSCMRevisionFactory.create((BitbucketPullRequestSCMHead) scmHead);
+            return BitbucketPullRequestSCMRevision.fromPullRequestHead((BitbucketPullRequestSCMHead) scmHead);
         }
 
         return getFullyInitializedGitSCMSource().accessibleRetrieve(scmHead, taskListener);

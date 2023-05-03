@@ -1,6 +1,5 @@
 package com.atlassian.bitbucket.jenkins.internal.scm.pullrequest;
 
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMRevision;
@@ -19,12 +18,12 @@ import static java.util.Objects.requireNonNull;
 public class PullRequestAwareSCMHeadObserver extends SCMHeadObserver {
 
     private final SCMHeadObserver delegate;
-    private final PullRequestRetriever pullRequestRetriever;
+    private final PullRequestRevisionRetriever revisionRetriever;
 
     public PullRequestAwareSCMHeadObserver(SCMHeadObserver delegate,
-                                           PullRequestRetriever pullRequestRetriever) {
+                                           PullRequestRevisionRetriever revisionRetriever) {
         this.delegate = requireNonNull(delegate, "delegate");
-        this.pullRequestRetriever = requireNonNull(pullRequestRetriever, "pullRequestRetriever");
+        this.revisionRetriever = requireNonNull(revisionRetriever, "revisionRetriever");
     }
 
     @Override
@@ -38,10 +37,9 @@ public class PullRequestAwareSCMHeadObserver extends SCMHeadObserver {
         // Otherwise, we check if there are open pull requests for the specified head and convert the head and revision
         // into BitbucketChangeRequestSCMHead and BitbucketChangeRequestSCMRevision respectively and pass those to the
         // delegate observer so they can be build appropriately
-        Collection<BitbucketPullRequest> pullRequests = pullRequestRetriever.getPullRequests(head);
-        if (!pullRequests.isEmpty()) {
-            for (BitbucketPullRequest pullRequest : pullRequestRetriever.getPullRequests(head)) {
-                SCMRevision prRevision = BitbucketPullRequestSCMRevisionFactory.create(pullRequest);
+        Collection<BitbucketPullRequestSCMRevision> prRevisions = revisionRetriever.getPullRequestRevisions(head);
+        if (!prRevisions.isEmpty()) {
+            for (BitbucketPullRequestSCMRevision prRevision : prRevisions) {
                 unwrapAndObserve(prRevision.getHead(), prRevision);
             }
             return;

@@ -43,7 +43,7 @@ class CustomGitSCMSource extends GitSCMSource {
     }
 
     /**
-     * This is needed in order so that the {@link GitSCM} can eventually get the merge commit for pull requests.
+     * This is needed so that the {@link GitSCM} can eventually get the merge commit for pull requests.
      * <p>
      * There are two builder methods that we are calling to make this happen.
      * <ul>

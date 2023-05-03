@@ -1,6 +1,5 @@
 package com.atlassian.bitbucket.jenkins.internal.scm.pullrequest;
 
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequestState;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import jenkins.scm.api.SCMHead;
@@ -30,7 +29,7 @@ public class RequireOpenPullRequestTrait extends SCMSourceTrait {
             @Override
             public boolean isExcluded(@NonNull SCMSource source, @NonNull SCMHead head) {
                 if (head instanceof BitbucketPullRequestSCMHead) {
-                    return ((BitbucketPullRequestSCMHead) head).getPullRequestState() == BitbucketPullRequestState.OPEN;
+                    return ((BitbucketPullRequestSCMHead) head).isPullRequestOpen();
                 }
 
                 return criteria.map(criteria -> !criteria.hasOpenPullRequests(head)).orElse(false);
