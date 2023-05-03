@@ -1,7 +1,6 @@
 package com.atlassian.bitbucket.jenkins.internal.scm.pullrequest;
 
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequest;
-import edu.umd.cs.findbugs.annotations.NonNull;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMRevision;
@@ -29,10 +28,10 @@ public class PullRequestAwareSCMHeadObserver extends SCMHeadObserver {
     }
 
     @Override
-    public void observe(@NonNull SCMHead head, @NonNull SCMRevision revision) throws IOException, InterruptedException {
+    public void observe(SCMHead head, SCMRevision revision) throws IOException, InterruptedException {
         if (head instanceof ChangeRequestSCMHead) {
             // If the head is already a ChangeRequestSCMHead then we simply pass it to the delegate observer
-            delegate.observe(head, revision);
+            unwrapAndObserve(head, revision);
             return;
         }
 
@@ -43,12 +42,24 @@ public class PullRequestAwareSCMHeadObserver extends SCMHeadObserver {
         if (!pullRequests.isEmpty()) {
             for (BitbucketPullRequest pullRequest : pullRequestRetriever.getPullRequests(head)) {
                 SCMRevision prRevision = BitbucketPullRequestSCMRevisionFactory.create(pullRequest);
-                delegate.observe(prRevision.getHead(), prRevision);
+                unwrapAndObserve(prRevision.getHead(), prRevision);
             }
             return;
         }
 
         // If there are no pull requests, pass it to the delegate observer
-        delegate.observe(head, revision);
+        unwrapAndObserve(head, revision);
+    }
+
+    private void unwrapAndObserve(SCMHead head, SCMRevision revision) throws IOException, InterruptedException {
+        if (delegate instanceof Wrapped) {
+            // FIXME: This is a hack... the wrapper is applied for heads that were generated during a webhook event and
+            // ensures that the head is from a trusted source. In this case, because we transform the head into a
+            // ChangeRequestSCMHead, it is no longer recognized as trusted. The proper fix would be to ensure the
+            // transformed head is trusted.
+            ((Wrapped<?>) delegate).unwrap().observe(head, revision);
+        } else {
+            delegate.observe(head, revision);
+        }
     }
 }
