@@ -10,12 +10,12 @@ import java.util.stream.Stream;
  * {@link BitbucketSCMSource#retrieve(SCMSourceCriteria, SCMHeadObserver, SCMHeadEvent, TaskListener)} method as part
  * or processing a {@link BitbucketSCMSourceRequest request}.
  */
-public interface BitbucketSCMHeadDiscoveryHandler<H extends SCMHead, R extends SCMRevision> {
+public interface BitbucketSCMHeadDiscoveryHandler {
 
     /**
      * @return as stream of {@link SCMHead heads} to be used for processing the source request
      */
-    Stream<H> discoverHeads();
+    Stream<SCMHead> discoverHeads();
 
     /**
      * Creates a {@link SCMRevision revision} for the specified head.
@@ -23,5 +23,5 @@ public interface BitbucketSCMHeadDiscoveryHandler<H extends SCMHead, R extends S
      * @param head the head to create a revision for
      * @return the revision for the specified head
      */
-    R toRevision(H head);
+    SCMRevision toRevision(SCMHead head);
 }

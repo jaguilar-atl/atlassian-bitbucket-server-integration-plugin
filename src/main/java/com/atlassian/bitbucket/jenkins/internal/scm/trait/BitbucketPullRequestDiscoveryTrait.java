@@ -2,6 +2,8 @@ package com.atlassian.bitbucket.jenkins.internal.scm.trait;
 
 import com.atlassian.bitbucket.jenkins.internal.scm.*;
 import hudson.Extension;
+import jenkins.scm.api.SCMHead;
+import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.trait.SCMBuilder;
 import jenkins.scm.api.trait.SCMSourceContext;
 import jenkins.scm.api.trait.SCMSourceTrait;
@@ -20,17 +22,17 @@ public class BitbucketPullRequestDiscoveryTrait extends SCMSourceTrait {
     protected void decorateContext(SCMSourceContext<?, ?> context) {
         if (context instanceof BitbucketSCMSourceContext) {
             ((BitbucketSCMSourceContext) context).withDiscoveryHandler(BitbucketDiscoverableHeadType.PULL_REQUEST,
-                    new BitbucketSCMHeadDiscoveryHandler<BitbucketPullRequestSCMHead,
-                            BitbucketPullRequestSCMRevision>() {
+                    new BitbucketSCMHeadDiscoveryHandler() {
 
                         @Override
-                        public Stream<BitbucketPullRequestSCMHead> discoverHeads() {
+                        public Stream<SCMHead> discoverHeads() {
                             return Stream.empty();
                         }
 
                         @Override
-                        public BitbucketPullRequestSCMRevision toRevision(BitbucketPullRequestSCMHead head) {
-                            return BitbucketPullRequestSCMRevision.fromPullRequestHead(head);
+                        public SCMRevision toRevision(SCMHead head) {
+                            return BitbucketPullRequestSCMRevision
+                                    .fromPullRequestHead((BitbucketPullRequestSCMHead) head);
                         }
                     }
             );

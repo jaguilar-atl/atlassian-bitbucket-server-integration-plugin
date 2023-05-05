@@ -3,6 +3,7 @@ package com.atlassian.bitbucket.jenkins.internal.client;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.*;
 import com.atlassian.bitbucket.jenkins.internal.scm.filesystem.BitbucketSCMFile;
 import jenkins.scm.api.SCMFile;
+import jenkins.scm.api.SCMFile.Type;
 
 import java.util.List;
 
@@ -12,6 +13,21 @@ import java.util.List;
  * @since 3.0.0
  */
 public interface BitbucketFilePathClient {
+
+    /**
+     * Retrieves the list of all files and directories that can be found.
+     *
+     * @param path the path of the file or directory to retrieve
+     * @param ref The commit ID or ref to retrieve the file for
+     *
+     * @return the {@link Type type} for the specified file
+     * @throws AuthorizationException     if the credentials did not allow access to the given url
+     * @throws ConnectionFailureException if the server did not respond
+     * @throws BadRequestException        if the request was malformed and thus rejected by the server
+     * @throws ServerErrorException       if the server failed to process the request
+     * @throws BitbucketClientException   for all errors not already captured
+     */
+    Type getFileType(String path, String ref);
 
     /**
      * Retrieves the list of all files and directories that can be found.

@@ -14,10 +14,14 @@ import static java.util.Objects.requireNonNull;
 
 public class BitbucketSCMSourceContext extends SCMSourceContext<BitbucketSCMSourceContext, BitbucketSCMSourceRequest> {
 
-    private final Map<BitbucketDiscoverableHeadType, BitbucketSCMHeadDiscoveryHandler<?, ?>> discoveryHandlers = new HashMap<>();
+    private final Map<BitbucketDiscoverableHeadType, BitbucketSCMHeadDiscoveryHandler> discoveryHandlers = new HashMap<>();
 
     public BitbucketSCMSourceContext(@Nullable SCMSourceCriteria criteria, SCMHeadObserver observer) {
         super(criteria, observer);
+    }
+
+    public Map<BitbucketDiscoverableHeadType, BitbucketSCMHeadDiscoveryHandler> getDiscoveryHandlers() {
+        return discoveryHandlers;
     }
 
     @Override
@@ -26,7 +30,7 @@ public class BitbucketSCMSourceContext extends SCMSourceContext<BitbucketSCMSour
     }
 
     public void withDiscoveryHandler(BitbucketDiscoverableHeadType discoverableHeadType,
-                                     BitbucketSCMHeadDiscoveryHandler<?, ?> discoveryHandler) {
+                                     BitbucketSCMHeadDiscoveryHandler discoveryHandler) {
         requireNonNull(discoverableHeadType, "discoverableHeadType");
         requireNonNull(discoveryHandler, "discoveryHandler");
 
