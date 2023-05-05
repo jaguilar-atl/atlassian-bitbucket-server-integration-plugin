@@ -9,7 +9,7 @@ import static java.util.Objects.requireNonNull;
 
 public class BitbucketPullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2 {
 
-    private static final String PR_ID_PREFIX = "pr#";
+    public static final String PR_ID_PREFIX = "pr#";
 
     private final String branchName;
     private final String latestCommit;

@@ -36,7 +36,7 @@ import jenkins.scm.api.*;
 import jenkins.scm.api.metadata.PrimaryInstanceMetadataAction;
 import jenkins.scm.api.trait.SCMSourceTrait;
 import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
-import jenkins.scm.impl.TagSCMHeadCategory;
+import jenkins.scm.impl.ChangeRequestSCMHeadCategory;
 import jenkins.scm.impl.UncategorizedSCMHeadCategory;
 import jenkins.scm.impl.form.NamedArrayList;
 import org.apache.commons.lang3.StringUtils;
@@ -291,6 +291,7 @@ public class BitbucketSCMSource extends SCMSource {
                 return;
             }
 
+            // If none of the "old" traits have been enabled we can skip the old retrieve
             if (getTraits().isEmpty() ||
                     getTraits().stream().anyMatch(trait -> !(trait instanceof BitbucketSCMSourceTrait))) {
                 doRetrieveLegacy(criteria, observer, event, listener);
@@ -298,6 +299,16 @@ public class BitbucketSCMSource extends SCMSource {
 
             doRetrieve(criteria, observer, event, listener);
         }
+    }
+
+    @Override
+    protected SCMRevision retrieve(@NonNull SCMHead head, @NonNull TaskListener listener) throws IOException,
+            InterruptedException {
+        if (head instanceof BitbucketPullRequestSCMHead) {
+            return BitbucketPullRequestSCMRevision.fromPullRequestHead((BitbucketPullRequestSCMHead) head);
+        }
+
+        return getFullyInitializedGitSCMSource().accessibleRetrieve(head, listener);
     }
 
     @NonNull
@@ -314,10 +325,13 @@ public class BitbucketSCMSource extends SCMSource {
     private void doRetrieve(@CheckForNull SCMSourceCriteria criteria, SCMHeadObserver observer,
                             @CheckForNull SCMHeadEvent<?> event,
                             TaskListener listener) throws IOException, InterruptedException {
-        BitbucketSCMSourceContext context = new BitbucketSCMSourceContext(criteria, observer).withTraits(getTraits());
+        BitbucketSCMSourceContext context =
+                new BitbucketSCMSourceContext(criteria, observer, getCredentials().orElse(null), repository)
+                        .withTraits(getTraits());
+
         try (BitbucketSCMSourceRequest request = context.newRequest(this, listener)) {
-            // Discover heads
             for (BitbucketSCMHeadDiscoveryHandler discoveryHandler : request.getDiscoveryHandlers().values()) {
+                // Process the stream of heads as they come in
                 discoveryHandler.discoverHeads().map(scmHead -> {
                     SCMRevision scmRevision = discoveryHandler.toRevision(scmHead);
                     try {
@@ -329,10 +343,12 @@ public class BitbucketSCMSource extends SCMSource {
                                         listener.getLogger().println(format("head: %s, revision: %s, isMatch: %s",
                                                 head, revision, isMatch)));
                     } catch (IOException | InterruptedException e) {
+                        listener.error("Error processing request for head: " + scmHead + ", revision: " +
+                                scmRevision + ", error: " + e.getMessage());
 
                         return true;
                     }
-                }).anyMatch(result -> result);
+                }).anyMatch(result -> result); // Terminate the stream if the request has finished observing
             }
         }
     }
@@ -581,7 +597,10 @@ public class BitbucketSCMSource extends SCMSource {
 
         @Override
         protected SCMHeadCategory[] createCategories() {
-            return new SCMHeadCategory[]{UncategorizedSCMHeadCategory.DEFAULT, TagSCMHeadCategory.DEFAULT};
+            return new SCMHeadCategory[]{
+                    UncategorizedSCMHeadCategory.DEFAULT,
+                    ChangeRequestSCMHeadCategory.DEFAULT
+            };
         }
 
         BitbucketScmHelper getBitbucketScmHelper(String bitbucketUrl, @CheckForNull Credentials httpCredentials) {
