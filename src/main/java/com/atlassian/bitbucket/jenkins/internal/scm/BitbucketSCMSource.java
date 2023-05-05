@@ -17,6 +17,7 @@ import com.atlassian.bitbucket.jenkins.internal.trigger.register.WebhookRegistra
 import com.cloudbees.hudson.plugins.folder.computed.ComputedFolder;
 import com.cloudbees.plugins.credentials.Credentials;
 import com.google.common.annotations.VisibleForTesting;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.model.Action;
@@ -59,6 +60,7 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import static java.lang.Math.max;
+import static java.lang.String.format;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
@@ -298,6 +300,17 @@ public class BitbucketSCMSource extends SCMSource {
         }
     }
 
+    @NonNull
+    @Override
+    protected SCMProbe createProbe(@NonNull SCMHead head, SCMRevision revision) throws IOException {
+        DescriptorImpl descriptor = (DescriptorImpl) getDescriptor();
+        BitbucketServerConfiguration serverConfig = descriptor.getConfiguration(getServerId()).get();
+        BitbucketScmHelper scmHelper = descriptor.getBitbucketScmHelper(serverConfig.getBaseUrl(),
+                getCredentials().orElse(null));
+
+        return new BitbucketSCMProbe(head, scmHelper.getFilePathClient(getProjectKey(), getRepositorySlug()));
+    }
+
     private void doRetrieve(@CheckForNull SCMSourceCriteria criteria, SCMHeadObserver observer,
                             @CheckForNull SCMHeadEvent<?> event,
                             TaskListener listener) throws IOException, InterruptedException {
@@ -305,25 +318,21 @@ public class BitbucketSCMSource extends SCMSource {
         try (BitbucketSCMSourceRequest request = context.newRequest(this, listener)) {
             // Discover heads
             for (BitbucketSCMHeadDiscoveryHandler discoveryHandler : request.getDiscoveryHandlers().values()) {
-                discoveryHandler.discoverHeads().forEach(scmHead -> {
+                discoveryHandler.discoverHeads().map(scmHead -> {
                     SCMRevision scmRevision = discoveryHandler.toRevision(scmHead);
                     try {
-                        request.process(scmHead,
+                        return request.process(
+                                scmHead,
                                 scmRevision,
                                 this::newProbe,
-                                (head, revision, isMatch) -> {
-                                    if (isMatch) {
-                                        listener.getLogger().println("Met criteria");
-                                    } else {
-                                        listener.getLogger().println("Does not meet criteria");
-                                    }
-                        });
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
+                                (head, revision, isMatch) ->
+                                        listener.getLogger().println(format("head: %s, revision: %s, isMatch: %s",
+                                                head, revision, isMatch)));
+                    } catch (IOException | InterruptedException e) {
+
+                        return true;
                     }
-                });
+                }).anyMatch(result -> result);
             }
         }
     }

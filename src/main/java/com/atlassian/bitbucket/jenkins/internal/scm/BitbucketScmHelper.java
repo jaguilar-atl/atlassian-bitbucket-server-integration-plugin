@@ -2,16 +2,15 @@ package com.atlassian.bitbucket.jenkins.internal.scm;
 
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactory;
 import com.atlassian.bitbucket.jenkins.internal.client.BitbucketClientFactoryProvider;
+import com.atlassian.bitbucket.jenkins.internal.client.BitbucketFilePathClient;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.BitbucketClientException;
 import com.atlassian.bitbucket.jenkins.internal.client.exception.NotFoundException;
 import com.atlassian.bitbucket.jenkins.internal.credentials.BitbucketCredentials;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketDefaultBranch;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketProject;
-import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
-import com.atlassian.bitbucket.jenkins.internal.model.RepositoryState;
+import com.atlassian.bitbucket.jenkins.internal.model.*;
 
 import java.util.Optional;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 
 import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketSearchHelper.getProjectByNameOrKey;
 import static com.atlassian.bitbucket.jenkins.internal.client.BitbucketSearchHelper.getRepositoryByNameOrSlug;
@@ -60,7 +59,7 @@ public class BitbucketScmHelper {
             return new BitbucketRepository(-1, repositoryName, null, new BitbucketProject(projectName, null, projectName), repositoryName, RepositoryState.AVAILABLE);
         }
     }
-    
+
     public Optional<BitbucketDefaultBranch> getDefaultBranch(String projectName, String repositoryName) {
         if (isBlank(projectName) || isBlank(repositoryName)) {
             LOGGER.info("Error creating the Bitbucket SCM: The projectName and repositoryName must not be blank");
@@ -84,7 +83,7 @@ public class BitbucketScmHelper {
                         "Error creating the Bitbucket SCM: Something went wrong when trying to contact Bitbucket Server: "
                                 + e.getMessage());
                 return Optional.empty();
-            }   
+            }
         } catch (NotFoundException e) {
             LOGGER.info("Error creating the Bitbucket SCM: Cannot find the project " + projectName);
             return Optional.empty();
@@ -95,5 +94,17 @@ public class BitbucketScmHelper {
                     e.getMessage());
             return Optional.empty();
         }
+    }
+
+    public Stream<BitbucketPullRequest> getOpenPullRequests(String projectKey, String repositorySlug) {
+        return clientFactory.getProjectClient(projectKey)
+                .getRepositoryClient(repositorySlug)
+                .getPullRequests(BitbucketPullRequestState.OPEN);
+    }
+
+    public BitbucketFilePathClient getFilePathClient(String projectKey, String repositorySlug) {
+        return clientFactory.getProjectClient(projectKey)
+                .getRepositoryClient(repositorySlug)
+                .getFilePathClient();
     }
 }
