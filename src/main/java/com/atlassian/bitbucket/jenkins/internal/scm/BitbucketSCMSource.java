@@ -8,6 +8,7 @@ import com.atlassian.bitbucket.jenkins.internal.credentials.CredentialUtils;
 import com.atlassian.bitbucket.jenkins.internal.credentials.JenkinsToBitbucketCredentials;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketNamedLink;
 import com.atlassian.bitbucket.jenkins.internal.model.BitbucketRepository;
+import com.atlassian.bitbucket.jenkins.internal.scm.trait.BitbucketSCMSourceTrait;
 import com.atlassian.bitbucket.jenkins.internal.status.BitbucketRepositoryMetadataAction;
 import com.atlassian.bitbucket.jenkins.internal.trigger.BitbucketWebhookMultibranchTrigger;
 import com.atlassian.bitbucket.jenkins.internal.trigger.RetryingWebhookHandler;
@@ -288,7 +289,12 @@ public class BitbucketSCMSource extends SCMSource {
                 return;
             }
 
-            doRetrieveLegacy(criteria, observer, event, listener);
+            if (getTraits().isEmpty() ||
+                    getTraits().stream().anyMatch(trait -> !(trait instanceof BitbucketSCMSourceTrait))) {
+                doRetrieveLegacy(criteria, observer, event, listener);
+            }
+
+            doRetrieve(criteria, observer, event, listener);
         }
     }
 

@@ -6,13 +6,12 @@ import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.trait.SCMBuilder;
 import jenkins.scm.api.trait.SCMSourceContext;
-import jenkins.scm.api.trait.SCMSourceTrait;
 import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.util.stream.Stream;
 
-public class BitbucketPullRequestDiscoveryTrait extends SCMSourceTrait {
+public class BitbucketPullRequestDiscoveryTrait extends BitbucketSCMSourceTrait {
 
     @DataBoundConstructor
     public BitbucketPullRequestDiscoveryTrait() {
