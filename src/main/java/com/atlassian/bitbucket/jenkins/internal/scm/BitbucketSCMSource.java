@@ -291,9 +291,7 @@ public class BitbucketSCMSource extends SCMSource {
                 return;
             }
 
-            // If none of the "old" traits have been enabled we can skip the old retrieve
-            if (getTraits().isEmpty() ||
-                    getTraits().stream().anyMatch(trait -> !(trait instanceof BitbucketSCMSourceTrait))) {
+            if (hasLegacyTraits()) {
                 doRetrieveLegacy(criteria, observer, event, listener);
             }
 
@@ -361,6 +359,16 @@ public class BitbucketSCMSource extends SCMSource {
                                   @CheckForNull SCMHeadEvent<?> event,
                                   TaskListener listener) throws IOException, InterruptedException {
         getFullyInitializedGitSCMSource().accessibleRetrieve(criteria, observer, event, listener);
+    }
+
+    private boolean hasLegacyTraits() {
+        return getTraits().stream().anyMatch(trait -> !(trait instanceof BitbucketSCMSourceTrait));
+    }
+
+    private List<SCMSourceTrait> getBitbucketSourceTraits() {
+        return getTraits().stream()
+                .filter(BitbucketSCMSourceTrait.class::isInstance)
+                .collect(Collectors.toList());
     }
 
     // Resolves the SCM repository, and the Git SCM. This involves a callout to Bitbucket so it must be done after the
