@@ -13,7 +13,7 @@ public class BitbucketPullRequestSCMRevision extends ChangeRequestSCMRevision<Bi
 
     private final String latestCommit;
 
-    public BitbucketPullRequestSCMRevision(BitbucketPullRequestSCMHead head, SCMRevision target) {
+    private BitbucketPullRequestSCMRevision(BitbucketPullRequestSCMHead head, SCMRevision target) {
         super(head, target);
         this.latestCommit = requireNonNull(head, "head").getLatestCommit();
     }
@@ -32,6 +32,7 @@ public class BitbucketPullRequestSCMRevision extends ChangeRequestSCMRevision<Bi
                         String.valueOf(pullRequest.getId()),
                         pullRequest.getState(),
                         targetHead);
+
         return new BitbucketPullRequestSCMRevision(sourceHead, targetRevision);
     }
 

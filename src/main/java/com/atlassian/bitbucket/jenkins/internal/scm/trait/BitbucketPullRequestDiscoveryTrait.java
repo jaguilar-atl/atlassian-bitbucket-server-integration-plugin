@@ -27,8 +27,6 @@ import javax.inject.Inject;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import static com.atlassian.bitbucket.jenkins.internal.scm.BitbucketPullRequestSCMHead.PR_ID_PREFIX;
-
 public class BitbucketPullRequestDiscoveryTrait extends BitbucketSCMSourceTrait {
 
     @DataBoundConstructor
@@ -78,12 +76,17 @@ public class BitbucketPullRequestDiscoveryTrait extends BitbucketSCMSourceTrait 
     protected void decorateBuilder(SCMBuilder<?, ?> builder) {
         if (builder instanceof GitSCMBuilder) {
             GitSCMBuilder<?> gitSCMBuilder = (GitSCMBuilder<?>) builder;
-            gitSCMBuilder.withRefSpec("+refs/pull-requests/*/from:refs/remotes/@{remote}/" + PR_ID_PREFIX + "*");
+            SCMRevision revision = gitSCMBuilder.revision();
 
-            SCMHead head = gitSCMBuilder.head();
-            if (head instanceof BitbucketPullRequestSCMHead) {
-                SCMHead target = ((BitbucketPullRequestSCMHead) head).getTarget();
-                gitSCMBuilder.withExtension(new MergeWithGitSCMExtension(target.getName(), "HEAD"));
+            if (revision instanceof BitbucketPullRequestSCMRevision) {
+                BitbucketPullRequestSCMRevision prRevision = (BitbucketPullRequestSCMRevision) revision;
+                BitbucketPullRequestSCMHead prHead = (BitbucketPullRequestSCMHead) prRevision.getHead();
+                gitSCMBuilder.withRefSpec("+refs/heads/" + prHead.getOriginName() +
+                        ":refs/remotes/@{remote}/" + prHead.getName());
+
+                BitbucketSCMRevision targetRevision = (BitbucketSCMRevision) prRevision.getTarget();
+                SCMHead targetHead = targetRevision.getHead();
+                gitSCMBuilder.withExtension(new MergeWithGitSCMExtension(targetHead.getName(), targetRevision.getLatestCommit()));
             }
         }
     }
@@ -104,14 +107,24 @@ public class BitbucketPullRequestDiscoveryTrait extends BitbucketSCMSourceTrait 
         @Inject
         private JenkinsToBitbucketCredentials jenkinsToBitbucketCredentials;
 
-        BitbucketScmHelper getBitbucketScmHelper(String bitbucketUrl, @CheckForNull Credentials httpCredentials) {
+        public BitbucketScmHelper getBitbucketScmHelper(String bitbucketUrl, @CheckForNull Credentials httpCredentials) {
             return new BitbucketScmHelper(bitbucketUrl,
                     bitbucketClientFactoryProvider,
                     jenkinsToBitbucketCredentials.toBitbucketCredentials(httpCredentials));
         }
 
-        Optional<BitbucketServerConfiguration> getConfiguration(@Nullable String serverId) {
+        @Override
+        public Class<? extends SCMBuilder> getBuilderClass() {
+            return GitSCMBuilder.class;
+        }
+
+        public Optional<BitbucketServerConfiguration> getConfiguration(@Nullable String serverId) {
             return bitbucketPluginConfiguration.getServerById(serverId);
+        }
+
+        @Override
+        public Class<? extends SCMSourceContext> getContextClass() {
+            return BitbucketSCMSourceContext.class;
         }
 
         @Override

@@ -4,12 +4,14 @@ import com.atlassian.bitbucket.jenkins.internal.model.BitbucketPullRequestState;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import jenkins.scm.api.mixin.ChangeRequestSCMHead2;
+import org.apache.commons.lang3.StringUtils;
 
 import static java.util.Objects.requireNonNull;
 
 public class BitbucketPullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2 {
 
-    public static final String PR_ID_PREFIX = "pr#";
+    public static final int PR_NAME_BRANCH_MAX_LENGTH = 20;
+    public static final String PR_NAME_TEMPLATE = "pr%s--%s--%s";
 
     private final String branchName;
     private final String latestCommit;
@@ -19,7 +21,7 @@ public class BitbucketPullRequestSCMHead extends SCMHead implements ChangeReques
 
     public BitbucketPullRequestSCMHead(String branchName, String latestCommit, String pullRequestId,
                                        BitbucketPullRequestState pullRequestState, SCMHead target) {
-        super(PR_ID_PREFIX + pullRequestId);
+        super(formatPRName(pullRequestId, branchName, target.getName()));
         this.branchName = requireNonNull(branchName, "branchName");
         this.latestCommit = requireNonNull(latestCommit, "latestCommit");
         this.pullRequestId = requireNonNull(pullRequestId, "pullRequestId");
@@ -53,5 +55,12 @@ public class BitbucketPullRequestSCMHead extends SCMHead implements ChangeReques
 
     public boolean isPullRequestOpen() {
         return pullRequestState == BitbucketPullRequestState.OPEN;
+    }
+
+    private static String formatPRName(String pullRequestId, String branchName, String targetBranchName) {
+        return String.format(PR_NAME_TEMPLATE,
+                pullRequestId,
+                StringUtils.truncate(branchName, PR_NAME_BRANCH_MAX_LENGTH),
+                StringUtils.truncate(targetBranchName, PR_NAME_BRANCH_MAX_LENGTH));
     }
 }
