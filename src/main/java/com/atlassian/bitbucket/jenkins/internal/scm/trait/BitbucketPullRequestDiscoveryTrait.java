@@ -13,7 +13,6 @@ import jenkins.plugins.git.MergeWithGitSCMExtension;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadCategory;
 import jenkins.scm.api.SCMRevision;
-import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.trait.SCMBuilder;
 import jenkins.scm.api.trait.SCMSourceContext;
 import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
@@ -123,18 +122,8 @@ public class BitbucketPullRequestDiscoveryTrait extends BitbucketSCMSourceTrait 
         }
 
         @Override
-        public Class<? extends SCMSourceContext> getContextClass() {
-            return BitbucketSCMSourceContext.class;
-        }
-
-        @Override
         public String getDisplayName() {
             return "Bitbucket Server: Discover pull requests";
-        }
-
-        @Override
-        public boolean isApplicableTo(@NonNull Class<? extends SCMSource> sourceClass) {
-            return BitbucketSCMSource.class.isAssignableFrom(sourceClass);
         }
     }
 }
