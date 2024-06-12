@@ -5,6 +5,7 @@ import com.atlassian.bitbucket.jenkins.internal.model.*;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCM;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMRepository;
 import com.atlassian.bitbucket.jenkins.internal.scm.BitbucketSCMSource;
+import com.atlassian.bitbucket.jenkins.internal.scm.pullrequest.BitbucketPullRequestSCMRevision;
 import com.atlassian.bitbucket.jenkins.internal.trigger.events.*;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.plugins.git.GitSCM;
@@ -73,8 +74,8 @@ public class BitbucketWebhookConsumer {
                 BitbucketSCMHeadEvent.fireNow(new BitbucketSCMHeadEvent(SCMEvent.Type.UPDATED, event,
                         eligibleUpdatedRefs, event.getRepository().getSlug()));
             }
-        } 
-        
+        }
+
         Set<BitbucketRefChange> deletedRefs = new HashSet<>(event.getChanges());
         deletedRefs.removeAll(eligibleUpdatedRefs);
         if (!deletedRefs.isEmpty()) {
@@ -87,17 +88,17 @@ public class BitbucketWebhookConsumer {
         LOGGER.fine("Received pull request event");
         if (event instanceof PullRequestOpenedWebhookEvent || event instanceof PullRequestFromRefUpdatedWebhookEvent) {
             RefChangedDetails refChangedDetails = new RefChangedDetails(event);
-            
+
             try (ACLContext ignored = ACL.as(ACL.SYSTEM)) {
                 BitbucketWebhookTriggerRequest.Builder requestBuilder = BitbucketWebhookTriggerRequest.builder();
                 event.getActor().ifPresent(requestBuilder::actor);
-                
+
                 processJobs(event, refChangedDetails, requestBuilder);
                 BitbucketSCMHeadPullRequestEvent.fireNow(new BitbucketSCMHeadPullRequestEvent(getSCMEventType(event),
                         event, event.getPullRequest().getToRef().getRepository().getSlug()));
             }
         } else if (event instanceof PullRequestClosedWebhookEvent) {
-            BitbucketSCMHeadPullRequestEvent.fireNow(new BitbucketSCMHeadPullRequestEvent(SCMEvent.Type.REMOVED, event, 
+            BitbucketSCMHeadPullRequestEvent.fireNow(new BitbucketSCMHeadPullRequestEvent(SCMEvent.Type.REMOVED, event,
                     event.getPullRequest().getFromRef().getRepository().getSlug()));
         }
     }
@@ -108,7 +109,7 @@ public class BitbucketWebhookConsumer {
                 .filter(refChange -> refChange.getType() != BitbucketRefChangeType.DELETE)
                 .collect(Collectors.toSet());
     }
-    
+
     private static SCMEvent.Type getSCMEventType(PullRequestWebhookEvent event) {
         if (event instanceof PullRequestOpenedWebhookEvent) {
             return SCMEvent.Type.CREATED;
@@ -249,9 +250,8 @@ public class BitbucketWebhookConsumer {
                 return emptyMap();
             }
 
-            BitbucketPullRequestRef fromRef = getPayload().getPullRequest().getFromRef();
-            return Collections.singletonMap(new GitBranchSCMHead(fromRef.getDisplayId()),
-                    new GitBranchSCMRevision(new GitBranchSCMHead(fromRef.getDisplayId()), fromRef.getLatestCommit()));
+            SCMRevision revision = BitbucketPullRequestSCMRevision.fromPullRequest(getPayload().getPullRequest());
+            return Collections.singletonMap(revision.getHead(), revision);
         }
 
         @Override
@@ -266,7 +266,7 @@ public class BitbucketWebhookConsumer {
     }
 
     static class BitbucketSCMHeadEvent extends SCMHeadEvent<RefsChangedWebhookEvent> {
-        
+
         private Collection<BitbucketRefChange> effectiveRefs;
 
         public BitbucketSCMHeadEvent(Type type, RefsChangedWebhookEvent payload, Collection<BitbucketRefChange> effectiveRefs, String origin) {
@@ -289,7 +289,7 @@ public class BitbucketWebhookConsumer {
                 return emptyMap();
             }
             return effectiveRefs.stream()
-                    .collect(Collectors.toMap(change -> new GitBranchSCMHead(change.getRef().getDisplayId()), 
+                    .collect(Collectors.toMap(change -> new GitBranchSCMHead(change.getRef().getDisplayId()),
                             change -> new GitBranchSCMRevision(new GitBranchSCMHead(change.getRef().getDisplayId()), change.getToHash())));
         }
 
